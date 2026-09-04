@@ -1,0 +1,14 @@
+{
+  "name": "niulai-desktop-pet",
+  "version": "0.3.1",
+  "description": "牛来行情桌面宠物（Windows / macOS）",
+  "author": "Niulai",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev:win": "powershell -ExecutionPolicy Bypass -File ./dev-windows.ps1",
+    "dist:win": "powershell -ExecutionPolicy Bypass -File ./build-windows.ps1",
+    "dist:mac": "wails build -clean -platform darwin/universal"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

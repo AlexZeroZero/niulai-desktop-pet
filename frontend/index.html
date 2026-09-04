@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>牛来行情桌宠</title>
+  <link rel="stylesheet" href="/src/app.css">
+</head>
+<body data-pet-size="small">
+  <main id="pet-shell">
+    <section id="market-orbit" class="market-orbit resting" aria-live="polite">
+      <i class="comet"></i>
+      <div class="quote-head">
+        <span id="trend-arrow" class="trend-arrow">•<i class="live-dot"></i></span>
+        <small id="quote-name">连接行情</small>
+        <strong id="quote-percent">--</strong>
+      </div>
+      <div class="quote-foot"><b id="quote-value">--</b><canvas id="trend-line" width="72" height="20" aria-hidden="true"></canvas></div>
+    </section>
+    <div id="speech"></div>
+    <section id="stage" data-state="idle" title="拖动我 · 双击唤醒">
+      <canvas id="pet-canvas" width="256" height="256" aria-label="牛来桌面宠物"></canvas>
+      <div id="sleep-fx"><i>Z</i><i>Z</i><i>Z</i></div>
+    </section>
+    <span id="mood">行情平稳</span>
+    <nav id="pet-controls"><button id="refresh" title="刷新">↻</button><button id="settings" title="设置">⚙</button><button id="sound" title="声音">♪</button><button id="quit" title="退出">×</button></nav>
+  </main>
+
+  <main id="settings-panel" aria-hidden="true">
+    <div class="sponsor-strip"><span>✦</span> 本插件由 <a id="sponsor-link" href="https://www.aitroys.com/">aitroys.com</a> 赞助开发 <span>✦</span></div>
+    <header class="settings-header">
+      <div class="brand"><canvas id="brand-cow" width="64" height="64"></canvas></div>
+      <div class="header-copy"><h1>牛来设置</h1><p>小巧灵动，认真盯盘</p></div>
+      <div class="header-badge">NIULAI LAB</div>
+      <button id="settings-close" title="关闭">×</button>
+    </header>
+
+    <form id="form">
+      <section class="card">
+        <h2><svg class="section-icon" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="3"/><path d="M8 10h8M8 14h5"/></svg>显示大小</h2>
+        <div class="segmented size-choice">
+          <label><input type="radio" name="petSize" value="small"><span>小巧 <small>完整高度 180</small></span></label>
+          <label><input type="radio" name="petSize" value="medium"><span>中等 <small>完整高度 224</small></span></label>
+        </div>
+      </section>
+
+      <section class="card market-card">
+        <h2><svg class="section-icon" viewBox="0 0 24 24"><path d="M4 17l5-5 4 3 7-8"/><path d="M15 7h5v5"/></svg>行情来源</h2>
+        <div class="segmented three">
+          <label><input type="radio" name="provider" value="eastmoney"><span>A 股</span></label>
+          <label><input type="radio" name="provider" value="binance"><span>数字币</span></label>
+          <label><input type="radio" name="provider" value="custom"><span>自定义 API</span></label>
+        </div>
+        <div class="provider-panel" data-provider="eastmoney">
+          <label>常用指数 / 自定义股票
+            <select id="preset">
+              <option value="1.000001|上证指数">上证指数</option>
+              <option value="0.399001|深证成指">深证成指</option>
+              <option value="0.399006|创业板指">创业板指</option>
+              <option value="custom-stock">＋ 自定义 A 股股票</option>
+            </select>
+          </label>
+          <div class="grid">
+            <label>股票代码
+              <input id="stock-code" name="symbol" placeholder="例如 600519 / SZ000001">
+              <small id="stock-normalized" class="field-hint">将读取：1.600519</small>
+            </label>
+            <label>显示名称<input name="displayName" placeholder="例如 贵州茅台"></label>
+          </div>
+        </div>
+        <div class="provider-panel" data-provider="binance">
+          <label>币种 / USDT 交易对
+            <input name="cryptoSymbol" placeholder="输入 BTC 或 BTCUSDT">
+            <small id="crypto-normalized" class="field-hint">将读取：BTCUSDT</small>
+          </label>
+        </div>
+        <div class="provider-panel" data-provider="custom">
+          <label>HTTPS API 地址<input name="customUrl" placeholder="https://api.example.com/ticker"></label>
+          <div class="grid"><label>价格字段路径<input name="customValuePath" placeholder="data.price"></label><label>涨跌幅字段路径<input name="customPercentPath" placeholder="data.percent"></label></div>
+          <label>请求头 JSON<textarea name="customHeaders" rows="3" placeholder='{"Authorization":"Bearer xxx"}'></textarea></label>
+        </div>
+      </section>
+
+      <section class="card sound-config">
+        <h2><svg class="section-icon" viewBox="0 0 24 24"><path d="M5 10v4h3l4 4V6L8 10H5z"/><path d="M16 9c1 1 1 5 0 6M19 7c3 3 3 7 0 10"/></svg>声音配置</h2>
+        <div class="volume-row"><span><b>播放音量</b><small>台词和牛叫统一控制</small></span><output id="volume-output"></output><input type="range" min="0" max="1" step=".05" name="volume"></div>
+        <div class="sound-list">
+          <div class="sound-row" data-kind="up"><span><b>上涨台词</b><small id="up-sound-name">内置“牛来”</small></span><button type="button" class="choose-sound" data-kind="up">选择</button><button type="button" class="clear-sound" data-kind="up">默认</button><input type="hidden" name="customUpSound"></div>
+          <div class="sound-row" data-kind="down"><span><b>下跌台词</b><small id="down-sound-name">内置“妈妈”</small></span><button type="button" class="choose-sound" data-kind="down">选择</button><button type="button" class="clear-sound" data-kind="down">默认</button><input type="hidden" name="customDownSound"></div>
+          <div class="sound-row" data-kind="cow"><span><b>牛叫音效</b><small id="cow-sound-name">内置牛叫</small></span><button type="button" class="choose-sound" data-kind="cow">选择</button><button type="button" class="clear-sound" data-kind="cow">默认</button><input type="hidden" name="customCowSound"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><svg class="section-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/></svg>动作规则</h2>
+        <div class="grid three-cols"><label>上涨欢呼 ≥ %<input type="number" step=".01" name="riseThreshold"></label><label>下跌哭泣 ≤ %<input type="number" step=".01" name="fallThreshold"></label><label>刷新间隔（秒）<input type="number" min="5" name="pollSeconds"></label></div>
+        <label>无行情后睡觉（分钟）<input type="number" min="1" max="120" name="staleSleepMinutes"></label>
+      </section>
+
+      <section class="card switches">
+        <h2><svg class="section-icon" viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg>使用偏好</h2>
+        <label><span><b>牛叫音效</b><small>互动与行情音效</small></span><input type="checkbox" name="soundEnabled"></label>
+        <label><span><b>台词声音</b><small>播报时同步嘴部动作</small></span><input type="checkbox" name="voiceEnabled"></label>
+        <label><span><b>总在最前</b><small>保持悬浮</small></span><input type="checkbox" name="alwaysOnTop"></label>
+        <label><span><b>开机启动</b><small>登录后自动运行</small></span><input type="checkbox" name="runOnStartup"></label>
+      </section>
+
+      <p id="settings-status" role="status"></p>
+      <footer><button type="button" id="test-up">↗ 上涨</button><button type="button" id="test-down">↘ 下跌</button><button type="submit" class="primary">保存设置</button></footer>
+    </form>
+  </main>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>

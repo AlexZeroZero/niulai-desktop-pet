@@ -1,0 +1,101 @@
+name: Build and release desktop packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag
+        required: true
+        default: v0.3.1
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            command: wails build -clean -platform windows/amd64 -nsis
+            artifact: windows
+          - os: macos-latest
+            command: wails build -clean -platform darwin/universal
+            artifact: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+      - if: runner.os == 'Windows'
+        run: choco install nsis -y
+      - run: npm ci
+        working-directory: frontend
+      - run: ${{ matrix.command }}
+
+      - name: Stage Windows packages
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          Copy-Item build/bin/Niulai-Pet.exe release-assets/Niulai-Pet-Windows-amd64-portable.exe
+          Copy-Item build/bin/NiulaiPet-amd64-installer.exe release-assets/Niulai-Pet-Windows-amd64-setup.exe
+
+      - name: Stage macOS packages
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets build/dmg
+          codesign --force --deep --sign - build/bin/Niulai-Pet.app
+          ditto -c -k --sequesterRsrc --keepParent build/bin/Niulai-Pet.app release-assets/Niulai-Pet-macOS-universal.zip
+          cp -R build/bin/Niulai-Pet.app build/dmg/
+          ln -s /Applications build/dmg/Applications
+          hdiutil create -volname "Niulai Pet" -srcfolder build/dmg -ov -format UDZO release-assets/Niulai-Pet-macOS-universal.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: niulai-${{ matrix.artifact }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: niulai-*
+          path: release-assets
+          merge-multiple: true
+      - name: Resolve release tag
+        id: release_tag
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release_tag.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" release-assets/* --target "$GITHUB_SHA" --title "牛来行情桌宠 $TAG" --generate-notes --repo "$GITHUB_REPOSITORY"
+          fi

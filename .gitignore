@@ -1,0 +1,53 @@
+# Dependencies and local toolchains
+/node_modules/
+/frontend/node_modules/
+/.tools/
+
+# Generated builds and installers
+/dist/
+/frontend/dist/
+/release/
+/build/bin/
+/build/windows/installer/tmp/
+/build/windows/installer/project.nsi
+*.log
+
+# Local settings and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+settings.json
+
+# Large source material and superseded Electron prototype
+/assets/
+/src/
+/*.glb
+
+# Local animation audits, screenshots and capture sequences
+/runtime-*/
+/runtime-*.png
+/runtime-*.gif
+/runtime-*.csv
+/animation-*.png
+/animation-*.gif
+/animation-*.csv
+/controlled-*.png
+/controlled-*.gif
+/coordinated-*.png
+/coordinated-*.gif
+/consistent-*.png
+/puppet-*.png
+/puppet-*.gif
+/rig-*.png
+/rig-*.gif
+/rigid-*.png
+/rigid-*.gif
+/settings-*.png
+/small-step-*.png
+/small-step-*.gif
+/v2-*.png
+/wails-*.png
+/model-rig-preview.png
+/niulai-reference.png
