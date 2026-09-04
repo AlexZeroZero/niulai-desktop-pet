@@ -1,6 +1,18 @@
-# 牛来行情桌宠
+<p align="center">
+  <img src="docs/images/app-icon.png" alt="牛来行情桌宠图标" width="156">
+</p>
+
+<h1 align="center">牛来行情桌宠</h1>
+
+<p align="center">会看盘、会喊话、会跑动，也会在休市时睡觉的轻量桌面宠物。</p>
 
 Windows / macOS 轻量行情桌面宠物，使用 Wails 和系统 WebView2/WebKit。运行时只加载压缩后的 2D/2.5D 多帧图集，不携带 Electron、3D 模型或本地生成模型。
+
+## 程序预览
+
+| 桌面宠物与行情播报 | 设置界面 |
+| --- | --- |
+| <img src="docs/images/preview-pet.png" alt="牛来桌面宠物行情播报" width="300"> | <img src="docs/images/preview-settings.png" alt="牛来桌面宠物设置界面" width="480"> |
 
 ## 功能
 

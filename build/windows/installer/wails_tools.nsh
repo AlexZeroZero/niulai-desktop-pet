@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "牛来行情桌宠"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.3.1"
+    !define INFO_PRODUCTVERSION "0.3.2"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright © 2026 Niulai"
