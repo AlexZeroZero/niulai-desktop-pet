@@ -10,6 +10,10 @@
 /build/bin/
 /build/windows/installer/tmp/
 /build/windows/installer/project.nsi
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
 *.log
 
 # Local settings and secrets

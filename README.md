@@ -8,7 +8,7 @@
 
 ![牛来行情桌宠 GitHub 预览](docs/images/github-preview.png)
 
-Windows / macOS 轻量行情桌面宠物，使用 Wails 和系统 WebView2/WebKit。运行时只加载压缩后的 2D/2.5D 多帧图集，不携带 Electron、3D 模型或本地生成模型。
+Windows / macOS / Android 轻量行情桌面宠物。桌面版使用 Wails 和系统 WebView2/WebKit，Android 版使用原生 Java Canvas 悬浮窗。运行时只加载压缩后的 2D/2.5D 多帧图集，不携带 Electron、3D 模型或本地生成模型。
 
 ## 程序预览
 
@@ -32,6 +32,9 @@ Windows / macOS 轻量行情桌面宠物，使用 Wails 和系统 WebView2/WebKi
 - Windows 便携版：`Niulai-Pet-Windows-amd64-portable.exe`
 - macOS 安装镜像：`Niulai-Pet-macOS-universal.dmg`
 - macOS 应用压缩包：`Niulai-Pet-macOS-universal.zip`
+- Android 测试安装包：`Niulai-Pet-Android-universal-debug.apk`
+
+Android 需要 Android 9（API 28）或更高版本。首次启动先授予“在其他应用上层显示”权限，再点“启动牛来”；Android 13 及以上建议同时允许通知，以便系统保持桌宠服务运行。
 
 macOS 包目前为无 Apple Developer ID 的个人使用构建。首次启动若被 Gatekeeper 拦截，请在 Finder 中右键应用并选择“打开”；不要直接双击第一次启动。
 
@@ -57,7 +60,16 @@ go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 npm run dist:mac
 ```
 
-推送 `v*` 标签或手动运行 `Build and release desktop packages` 工作流，会在 GitHub Releases 同时发布 Windows 与 macOS 包。
+Android 版要求 JDK 17 与 Android SDK 35：
+
+```bash
+cd android
+./gradlew assembleDebug
+```
+
+可安装 APK 位于 `android/app/build/outputs/apk/debug/app-debug.apk`。Release 构建需要自行配置正式签名；GitHub Release 提供的是已签名、可直接安装的测试包。
+
+推送 `v*` 标签或手动运行 `Build and release packages` 工作流，会在 GitHub Releases 同时发布 Windows、macOS 与 Android 包。
 
 ## 隐私与素材
 

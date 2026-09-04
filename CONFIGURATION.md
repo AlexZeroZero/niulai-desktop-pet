@@ -7,6 +7,7 @@
 - Windows：`%APPDATA%\NiulaiPet\settings.json`
 - macOS：`~/Library/Application Support/NiulaiPet/settings.json`
 - 自定义声音：配置目录下的 `audio` 文件夹
+- Android：应用私有的 `niulai_settings` 偏好设置；请在 Android 设置页内修改，普通文件管理器无法直接访问
 
 自定义 API 的请求头在系统安全存储可用时不会明文保留在 JSON 中：
 
@@ -14,6 +15,8 @@
 - macOS：钥匙串，服务名 `NiulaiPet`，项目 `customHeaders`
 
 配置不会上传到 GitHub。删除 `settings.json` 后重启程序可恢复默认设置。
+
+Android 自定义声音通过系统文件选择器保存文件读取授权，不会复制整份音频；卸载应用会同时清除配置与授权。Android 设置页中的“恢复全部内置声音”可清空三类自定义声音。
 
 ## 字段
 
