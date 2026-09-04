@@ -37,8 +37,12 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-      - if: runner.os == 'Windows'
-        run: choco install nsis -y
+      - name: Install NSIS
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install nsis -y
+          "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - run: npm ci
         working-directory: frontend
       - run: ${{ matrix.command }}
@@ -57,9 +61,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-assets build/dmg
-          codesign --force --deep --sign - build/bin/Niulai-Pet.app
-          ditto -c -k --sequesterRsrc --keepParent build/bin/Niulai-Pet.app release-assets/Niulai-Pet-macOS-universal.zip
-          cp -R build/bin/Niulai-Pet.app build/dmg/
+          codesign --force --deep --sign - build/bin/NiulaiPet.app
+          ditto -c -k --sequesterRsrc --keepParent build/bin/NiulaiPet.app release-assets/Niulai-Pet-macOS-universal.zip
+          cp -R build/bin/NiulaiPet.app build/dmg/
           ln -s /Applications build/dmg/Applications
           hdiutil create -volname "Niulai Pet" -srcfolder build/dmg -ov -format UDZO release-assets/Niulai-Pet-macOS-universal.dmg
 
