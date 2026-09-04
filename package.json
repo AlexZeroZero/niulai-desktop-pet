@@ -3,7 +3,7 @@
   "version": "0.3.2",
   "description": "牛来行情桌面宠物（Windows / macOS）",
   "author": "Niulai",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "dev:win": "powershell -ExecutionPolicy Bypass -File ./dev-windows.ps1",
     "dist:win": "powershell -ExecutionPolicy Bypass -File ./build-windows.ps1",

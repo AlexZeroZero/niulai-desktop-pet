@@ -63,6 +63,8 @@ npm run dist:mac
 
 - 默认 A 股和数字货币行情使用公开接口，不要求 API Key。
 - 自定义 API 只接受 HTTPS 地址。
-- 电影音频及角色素材仅供权利人授权范围内的个人使用；分发前请自行确认拥有相应权利。
+- 源代码采用 [MIT License](LICENSE) 开源。
+- 电影音频、角色动画、图标和宣传图不包含在 MIT 授权中，具体见 [ASSETS-LICENSE.md](ASSETS-LICENSE.md)。
+- 复制、重新发布或商业使用第三方素材前，请自行确认已取得相应权利。
 
 本插件由 [aitroys.com](https://www.aitroys.com/) 赞助开发。
