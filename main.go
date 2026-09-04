@@ -34,7 +34,11 @@ func main() {
 			DisableFramelessWindowDecorations: true,
 			BackdropType:                      windows.None,
 		},
-		Mac: &mac.Options{WebviewIsTransparent: true, WindowIsTranslucent: true},
+		// On macOS WindowIsTranslucent adds an NSVisualEffectView. In light
+		// appearance that material becomes the white rectangle behind the pet.
+		// Keep the WKWebView transparent and let the alpha-zero window colour
+		// provide a genuinely clear desktop-pet background.
+		Mac: &mac.Options{WebviewIsTransparent: true, WindowIsTranslucent: false},
 	})
 	if err != nil {
 		println("牛来启动失败:", err.Error())
