@@ -262,7 +262,7 @@ final class PetOverlayView extends View {
         int col = frame % columns;
         int row = frame / columns + rowOffset;
         source.set(col * CELL, row * CELL, (col + 1) * CELL, (row + 1) * CELL);
-        float size = medium ? Math.min(dp(154), getWidth() - dp(18)) : Math.min(dp(122), getWidth() - dp(18));
+        float size = medium ? Math.min(dp(123), getWidth() - dp(18)) : Math.min(dp(98), getWidth() - dp(18));
         float left = (getWidth() - size) / 2f;
         float top = dp(64);
         destination.set(left, top, left + size, top + size);
@@ -360,13 +360,13 @@ final class PetOverlayView extends View {
                     return true;
                 }
                 long now = SystemClock.uptimeMillis();
+                trackRapidTap(now);
+                controller.onTap();
                 if (now - lastTap < 320) {
                     lastTap = 0;
                     controller.onDoubleTap();
                 } else {
                     lastTap = now;
-                    trackRapidTap(now);
-                    controller.onTap();
                     showControls();
                 }
                 return true;

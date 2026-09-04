@@ -10,11 +10,9 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.AssetFileDescriptor;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Icon;
-import android.media.AudioAttributes;
-import android.media.SoundPool;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -29,6 +27,8 @@ import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Random;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -71,10 +71,7 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
     private WindowManager.LayoutParams windowParams;
     private PetOverlayView overlay;
     private PetSettings settings;
-    private SoundPool sounds;
-    private int niulaiSound;
-    private int mamaSound;
-    private int mieSound;
+    private final Set<MediaPlayer> activePlayers = new HashSet<>();
     private long lastSuccess;
     private long lastReaction;
     private long manualAwakeUntil;
@@ -91,7 +88,6 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
         settings = PetSettings.load(this);
         createChannel();
         startForeground(NOTIFICATION_ID, notification("行情连接中"));
-        createSounds();
         if (Settings.canDrawOverlays(this)) attachOverlay();
         main.post(idleQuoteRunnable);
     }
@@ -105,7 +101,6 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
         }
         if (ACTION_APPLY.equals(action)) {
             settings = PetSettings.load(this);
-            createSounds();
             resizeOverlay();
         }
         if (!Settings.canDrawOverlays(this)) {
@@ -152,11 +147,11 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
     }
 
     private int overlayWidth() {
-        return dp("medium".equals(settings.petSize) ? 228 : 190);
+        return dp("medium".equals(settings.petSize) ? 205 : 170);
     }
 
     private int overlayHeight() {
-        return dp("medium".equals(settings.petSize) ? 260 : 220);
+        return dp("medium".equals(settings.petSize) ? 230 : 205);
     }
 
     private void pollNow() {
@@ -216,8 +211,8 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
         lastReaction = System.currentTimeMillis();
         overlay.setState(PetOverlayView.State.RUN);
         overlay.showCaption(UP_QUOTES[random.nextInt(UP_QUOTES.length)], 5000);
-        if (settings.voiceEnabled) play(niulaiSound, 1f);
-        if (settings.soundEnabled) main.postDelayed(() -> play(mieSound, .82f), 1350);
+        if (settings.voiceEnabled) play(settings.niulaiSoundUri, R.raw.niulai, 1f);
+        if (settings.soundEnabled) main.postDelayed(() -> play(settings.mieSoundUri, R.raw.mie, .92f), 1350);
         runAcrossScreen();
     }
 
@@ -226,8 +221,8 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
         cancelMovement();
         overlay.setState(PetOverlayView.State.DOWN);
         overlay.showCaption(DOWN_QUOTES[random.nextInt(DOWN_QUOTES.length)], 5800);
-        if (settings.voiceEnabled) play(mamaSound, 1f);
-        if (settings.soundEnabled) main.postDelayed(() -> play(mieSound, .76f), 900);
+        if (settings.voiceEnabled) play(settings.mamaSoundUri, R.raw.mama, 1f);
+        if (settings.soundEnabled) main.postDelayed(() -> play(settings.mieSoundUri, R.raw.mie, .88f), 900);
         main.postDelayed(() -> {
             if (overlay != null && overlay.getState() == PetOverlayView.State.DOWN) {
                 overlay.setState(PetOverlayView.State.IDLE);
@@ -302,7 +297,7 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
         if (tapCount >= 5) {
             tapCount = 0;
             overlay.showCaption("牛来！", 2200);
-            if (settings.voiceEnabled) play(niulaiSound, 1f);
+            if (settings.voiceEnabled) play(settings.niulaiSoundUri, R.raw.niulai, 1f);
         }
     }
 
@@ -355,34 +350,37 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
         }
     }
 
-    private void createSounds() {
-        if (sounds != null) sounds.release();
-        AudioAttributes attributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                .build();
-        sounds = new SoundPool.Builder().setMaxStreams(3).setAudioAttributes(attributes).build();
-        niulaiSound = loadSound(settings.niulaiSoundUri, R.raw.niulai);
-        mamaSound = loadSound(settings.mamaSoundUri, R.raw.mama);
-        mieSound = loadSound(settings.mieSoundUri, R.raw.mie);
-    }
-
-    private int loadSound(String uriValue, int fallbackResource) {
+    private void play(String uriValue, int fallbackResource, float volume) {
+        MediaPlayer player = null;
         if (uriValue != null && !uriValue.isEmpty()) {
-            try (AssetFileDescriptor descriptor = getContentResolver()
-                    .openAssetFileDescriptor(android.net.Uri.parse(uriValue), "r")) {
-                if (descriptor != null) {
-                    int customSound = sounds.load(descriptor, 1);
-                    if (customSound != 0) return customSound;
-                }
+            try {
+                player = MediaPlayer.create(this, android.net.Uri.parse(uriValue));
             } catch (Exception ignored) {
             }
         }
-        return sounds.load(this, fallbackResource, 1);
+        if (player == null) player = MediaPlayer.create(this, fallbackResource);
+        if (player == null) {
+            if (overlay != null) overlay.showCaption("音频加载失败，请在设置中重新选择", 3500);
+            return;
+        }
+        final MediaPlayer playing = player;
+        activePlayers.add(playing);
+        playing.setVolume(volume, volume);
+        playing.setOnCompletionListener(value -> releasePlayer(value));
+        playing.setOnErrorListener((value, what, extra) -> {
+            releasePlayer(value);
+            return true;
+        });
+        try {
+            playing.start();
+        } catch (IllegalStateException error) {
+            releasePlayer(playing);
+        }
     }
 
-    private void play(int soundId, float volume) {
-        if (sounds != null && soundId != 0) sounds.play(soundId, volume, volume, 1, 0, 1f);
+    private void releasePlayer(MediaPlayer player) {
+        activePlayers.remove(player);
+        try { player.release(); } catch (Exception ignored) { }
     }
 
     private String marketClosedLabel() {
@@ -444,7 +442,7 @@ public final class PetOverlayService extends Service implements PetOverlayView.C
             try { windowManager.removeView(overlay); } catch (IllegalArgumentException ignored) { }
         }
         overlay = null;
-        if (sounds != null) sounds.release();
+        for (MediaPlayer player : new HashSet<>(activePlayers)) releasePlayer(player);
         network.shutdownNow();
         super.onDestroy();
     }

@@ -7,9 +7,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.InputType;
 import android.view.Gravity;
@@ -36,9 +39,10 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_NOTIFICATIONS = 2102;
     private static final int REQUEST_AUDIO = 2103;
     private final int red = Color.rgb(230, 64, 80);
-    private final int panel = Color.rgb(17, 24, 36);
-    private final int field = Color.rgb(8, 13, 21);
-    private final int muted = Color.rgb(145, 157, 175);
+    private final int panel = Color.rgb(20, 23, 33);
+    private final int field = Color.rgb(10, 13, 21);
+    private final int muted = Color.rgb(157, 166, 181);
+    private final Handler main = new Handler(Looper.getMainLooper());
 
     private Spinner providerSpinner;
     private Spinner sizeSpinner;
@@ -94,38 +98,43 @@ public final class MainActivity extends Activity {
         else if ("mie".equals(pickingSound)) s.mieSoundUri = uri.toString();
         s.save(this);
         updateAudioStatus(s);
+        if (Settings.canDrawOverlays(this)) startServiceIntent(PetOverlayService.ACTION_APPLY);
         Toast.makeText(this, "自定义声音已保存", Toast.LENGTH_SHORT).show();
+        previewAudio(pickingSound);
     }
 
     private View buildContent() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(Color.rgb(8, 12, 19));
+        scroll.setPadding(dp(10), dp(10), dp(10), dp(16));
+        scroll.setClipToPadding(false);
         LinearLayout root = column();
-        root.setPadding(dp(16), dp(14), dp(16), dp(28));
+        root.setPadding(dp(14), dp(12), dp(14), dp(24));
+        root.setBackground(rounded(Color.rgb(11, 15, 24), Color.rgb(112, 35, 48), 22));
         scroll.addView(root, matchWrap());
 
         TextView sponsor = text("✦ 本插件由 aitroys.com 赞助开发 ✦", 12, Color.rgb(255, 205, 210));
         sponsor.setGravity(Gravity.CENTER);
         sponsor.setPadding(dp(8), dp(9), dp(8), dp(9));
-        sponsor.setBackground(rounded(Color.rgb(104, 25, 37), red, 12));
+        sponsor.setBackground(rounded(Color.rgb(79, 24, 35), Color.rgb(178, 49, 66), 12));
         sponsor.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.aitroys.com/"))));
         root.addView(sponsor, matchHeight(dp(38)));
 
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(4), dp(16), dp(4), dp(13));
+        header.setPadding(dp(4), dp(14), dp(4), dp(11));
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.ic_launcher);
         logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        header.addView(logo, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        header.addView(logo, new LinearLayout.LayoutParams(dp(50), dp(50)));
         LinearLayout titleBox = column();
         titleBox.setPadding(dp(12), 0, 0, 0);
-        TextView title = text("牛来行情桌宠", 23, Color.WHITE);
+        TextView title = text("牛来设置中心", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         titleBox.addView(title);
-        titleBox.addView(text("Android 原生轻量版 · v0.1.0", 12, muted));
+        titleBox.addView(text("行情 · 动作 · 声音一站式配置", 12, muted));
         header.addView(titleBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         root.addView(header);
 
@@ -178,8 +187,8 @@ public final class MainActivity extends Activity {
         riseThreshold = edit(up, "上涨触发 %", "0.15", true);
         LinearLayout down = column();
         fallThreshold = edit(down, "下跌触发 %", "-0.15", true);
-        thresholds.addView(up, weight());
-        thresholds.addView(down, weightWithMargin());
+        thresholds.addView(up, wrapWeight());
+        thresholds.addView(down, wrapWeightWithMargin());
         rules.addView(thresholds);
         pollSeconds = edit(rules, "行情刷新间隔（秒）", "15", true);
         staleMinutes = edit(rules, "无行情后睡眠（分钟）", "3", true);
@@ -192,31 +201,39 @@ public final class MainActivity extends Activity {
         soundEnabled = check("牛叫音效");
         voiceEnabled = check("台词声音");
         autoStart = check("开机自动启动");
-        preferences.addView(soundEnabled);
-        preferences.addView(voiceEnabled);
+        LinearLayout switches = row();
+        soundEnabled.setTextSize(12);
+        voiceEnabled.setTextSize(12);
+        autoStart.setTextSize(12);
+        switches.addView(soundEnabled, wrapWeight());
+        switches.addView(voiceEnabled, wrapWeight());
+        preferences.addView(switches, matchWrap());
         preferences.addView(autoStart);
         label(preferences, "自定义声音（MP3 / WAV / OGG）");
-        audioStatus = text("当前使用内置声音", 12, muted);
+        audioStatus = text("当前使用内置声音 · 播放走手机媒体音量", 12, muted);
         audioStatus.setPadding(dp(2), 0, 0, dp(6));
         preferences.addView(audioStatus);
-        Button chooseNiulai = actionButton("选择“牛来”声音", false);
+        LinearLayout audioChoices = row();
+        Button chooseNiulai = actionButton("选择牛来", false);
         chooseNiulai.setOnClickListener(v -> pickAudio("niulai"));
-        preferences.addView(chooseNiulai, matchHeight(dp(44)));
-        Button chooseMama = actionButton("选择“妈妈”声音", false);
+        audioChoices.addView(chooseNiulai, weight());
+        Button chooseMama = actionButton("选择妈妈", false);
         chooseMama.setOnClickListener(v -> pickAudio("mama"));
-        LinearLayout.LayoutParams audioButtonParams = matchHeight(dp(44));
-        audioButtonParams.setMargins(0, dp(6), 0, 0);
-        preferences.addView(chooseMama, audioButtonParams);
+        audioChoices.addView(chooseMama, weightWithMargin());
         Button chooseMie = actionButton("选择牛叫声", false);
         chooseMie.setOnClickListener(v -> pickAudio("mie"));
-        LinearLayout.LayoutParams audioButtonParams2 = matchHeight(dp(44));
-        audioButtonParams2.setMargins(0, dp(6), 0, 0);
-        preferences.addView(chooseMie, audioButtonParams2);
+        audioChoices.addView(chooseMie, weightWithMargin());
+        preferences.addView(audioChoices);
+        LinearLayout audioActions = row();
+        Button previewAudio = actionButton("试听全部声音", true);
+        previewAudio.setOnClickListener(v -> previewAllAudio());
+        audioActions.addView(previewAudio, weight());
         Button resetAudio = actionButton("恢复全部内置声音", false);
         resetAudio.setOnClickListener(v -> resetAudio());
-        LinearLayout.LayoutParams audioButtonParams3 = matchHeight(dp(44));
-        audioButtonParams3.setMargins(0, dp(6), 0, 0);
-        preferences.addView(resetAudio, audioButtonParams3);
+        audioActions.addView(resetAudio, weightWithMargin());
+        LinearLayout.LayoutParams audioActionParams = matchHeight(dp(46));
+        audioActionParams.setMargins(0, dp(7), 0, 0);
+        preferences.addView(audioActions, audioActionParams);
         root.addView(preferences, cardParams());
 
         Button save = actionButton("保存并应用设置", true);
@@ -273,12 +290,51 @@ public final class MainActivity extends Activity {
         Toast.makeText(this, "已恢复内置声音", Toast.LENGTH_SHORT).show();
     }
 
+    private void previewAllAudio() {
+        previewAudio("niulai");
+        main.postDelayed(() -> previewAudio("mie"), 1350);
+    }
+
+    private void previewAudio(String type) {
+        PetSettings s = PetSettings.load(this);
+        String uriValue;
+        int fallback;
+        if ("mama".equals(type)) {
+            uriValue = s.mamaSoundUri;
+            fallback = R.raw.mama;
+        } else if ("mie".equals(type)) {
+            uriValue = s.mieSoundUri;
+            fallback = R.raw.mie;
+        } else {
+            uriValue = s.niulaiSoundUri;
+            fallback = R.raw.niulai;
+        }
+        MediaPlayer player = null;
+        if (!uriValue.isEmpty()) {
+            try { player = MediaPlayer.create(this, Uri.parse(uriValue)); } catch (Exception ignored) { }
+        }
+        if (player == null) player = MediaPlayer.create(this, fallback);
+        if (player == null) {
+            Toast.makeText(this, "音频加载失败，请重新选择音频文件", Toast.LENGTH_LONG).show();
+            return;
+        }
+        player.setVolume(1f, 1f);
+        player.setOnCompletionListener(MediaPlayer::release);
+        player.setOnErrorListener((value, what, extra) -> {
+            value.release();
+            return true;
+        });
+        player.start();
+    }
+
     private void updateAudioStatus(PetSettings s) {
         if (audioStatus == null) return;
         int count = (s.niulaiSoundUri.isEmpty() ? 0 : 1)
                 + (s.mamaSoundUri.isEmpty() ? 0 : 1)
                 + (s.mieSoundUri.isEmpty() ? 0 : 1);
-        audioStatus.setText(count == 0 ? "当前使用内置声音" : "已配置 " + count + " 项自定义声音");
+        audioStatus.setText(count == 0
+                ? "当前使用内置声音 · 播放走手机媒体音量"
+                : "已配置 " + count + " 项自定义声音 · 播放走手机媒体音量");
     }
 
     private boolean saveForm(boolean notifyService) {
@@ -370,12 +426,19 @@ public final class MainActivity extends Activity {
 
     private LinearLayout card(String title) {
         LinearLayout layout = column();
-        layout.setPadding(dp(14), dp(12), dp(14), dp(13));
-        layout.setBackground(rounded(panel, Color.rgb(55, 67, 84), 16));
-        TextView heading = text(title, 16, Color.rgb(244, 91, 104));
+        layout.setPadding(dp(14), dp(13), dp(14), dp(14));
+        layout.setBackground(rounded(panel, Color.rgb(91, 37, 50), 16));
+        LinearLayout headingRow = row();
+        View accent = new View(this);
+        accent.setBackground(rounded(red, red, 4));
+        headingRow.addView(accent, new LinearLayout.LayoutParams(dp(4), dp(20)));
+        TextView heading = text(title, 16, Color.rgb(248, 241, 243));
         heading.setTypeface(Typeface.DEFAULT_BOLD);
-        heading.setPadding(0, 0, 0, dp(8));
-        layout.addView(heading);
+        heading.setPadding(dp(9), 0, 0, 0);
+        headingRow.addView(heading, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        LinearLayout.LayoutParams headingParams = matchWrap();
+        headingParams.setMargins(0, 0, 0, dp(8));
+        layout.addView(headingRow, headingParams);
         return layout;
     }
 
@@ -383,19 +446,19 @@ public final class MainActivity extends Activity {
         label(parent, title);
         EditText value = new EditText(this);
         value.setHint(hint);
-        value.setHintTextColor(Color.rgb(85, 98, 116));
+        value.setHintTextColor(Color.rgb(98, 106, 121));
         value.setTextColor(Color.WHITE);
         value.setTextSize(14);
         value.setSingleLine(!title.contains("JSON"));
         value.setPadding(dp(12), 0, dp(12), 0);
-        value.setBackground(rounded(field, Color.rgb(48, 59, 75), 11));
+        value.setBackground(rounded(field, Color.rgb(69, 38, 48), 11));
         if (number) value.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         parent.addView(value, matchHeight(title.contains("JSON") ? dp(72) : dp(48)));
         return value;
     }
 
     private void label(LinearLayout parent, String value) {
-        TextView label = text(value, 12, Color.rgb(163, 174, 190));
+        TextView label = text(value, 12, Color.rgb(180, 187, 199));
         label.setPadding(dp(2), dp(8), 0, dp(4));
         parent.addView(label);
     }
@@ -410,10 +473,18 @@ public final class MainActivity extends Activity {
                 view.setPadding(dp(12), 0, dp(8), 0);
                 return view;
             }
+            @Override public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convertView, parent);
+                view.setTextColor(Color.WHITE);
+                view.setTextSize(14);
+                view.setBackgroundColor(panel);
+                view.setPadding(dp(14), dp(12), dp(14), dp(12));
+                return view;
+            }
         };
         spinner.setAdapter(adapter);
         spinner.setPopupBackgroundDrawable(rounded(panel, Color.rgb(70, 80, 96), 8));
-        spinner.setBackground(rounded(field, Color.rgb(48, 59, 75), 11));
+        spinner.setBackground(rounded(field, Color.rgb(69, 38, 48), 11));
         return spinner;
     }
 
@@ -483,6 +554,16 @@ public final class MainActivity extends Activity {
     private LinearLayout.LayoutParams weightWithMargin() {
         LinearLayout.LayoutParams p = weight();
         p.setMargins(dp(7), 0, 0, 0);
+        return p;
+    }
+
+    private LinearLayout.LayoutParams wrapWeight() {
+        return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+    }
+
+    private LinearLayout.LayoutParams wrapWeightWithMargin() {
+        LinearLayout.LayoutParams p = wrapWeight();
+        p.setMargins(dp(8), 0, 0, 0);
         return p;
     }
 
